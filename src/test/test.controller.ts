@@ -6,7 +6,7 @@ import {
   Get,
   Param,
   Post,
-  Query,
+  HttpCode,
   Request,
 } from '@nestjs/common';
 
@@ -21,14 +21,16 @@ export class TestController {
       data
     }
   }
-  @Get('/getAll')
-  async getData(@Query() queryParams): Promise<any> {
-    console.log('params',queryParams);
-    const result = await this.testService.getTest(queryParams);
+  @Post('/getAll')
+  @HttpCode(200)
+  async getData(@Body() body): Promise<any> {
+    const result = await this.testService.getTest(body);
     return {
       code: 200,
       data: result[0],
       count: result[1],
+      pageSize: parseInt(body.pageSize),
+      current: parseInt(body.current),
     };
   }
   @Get('/findALl')
@@ -36,12 +38,21 @@ export class TestController {
     const id = parseInt(req.query.id);
     return this.testService.getTestById(id);
   }
+
+  // 表格导出
+  @Post('/tableExport')
+  @HttpCode(200)
+  exportTable(): any {
+    return this.testService.exportTable();
+  }
+
   @Get('/update/:id')
   updateById(@Param() params): any {
     const id: number = params.id;
     return this.testService.updateById(id);
   }
   @Post('/updatePostById')
+
   updatePostById(@Body() body): any {
     const id: number = body.id;
     return this.testService.updatePostById(id);
