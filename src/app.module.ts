@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TestModule } from './test/test.module';
 import { TestController } from './test/test.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports:[TestModule, TypeOrmModule.forRoot({
@@ -15,7 +16,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     retryAttempts:10,       // 允许重连次数
     entities: ['dist/**/*.entity{.ts,.js}'],
     autoLoadEntities: true, // 自动查找Entity实体
-  })],
+  }), UserModule],
   controllers: [TestController],
   providers: [],
 })

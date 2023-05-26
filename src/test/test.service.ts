@@ -1,8 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Res } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Test } from './entities/test.entity';
 import { Like, Repository } from 'typeorm';
+import { Response } from 'express';
+
 import * as ExcelJS from 'exceljs';
+import { createReadStream } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class TestService {
@@ -48,7 +52,7 @@ export class TestService {
   }
 
   //导出
-  async exportTable() {
+  async exportTable():Promise<NodeJS.ReadableStream> {
     const result = await this.testRepository.find();
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('excel表格');
@@ -71,6 +75,12 @@ export class TestService {
       },
     ]
     worksheet.addRows(result);
-    return workbook.xlsx.writeBuffer();
+    // 将Excel文件写入文件流中
+    const filePath = join(__dirname, '../public/files/file.xlsx');
+    console.log('filePath', filePath, );
+    console.log('__dirname', __dirname, );
+    await workbook.xlsx.writeFile(filePath);
+    const readStream = createReadStream(filePath);
+    return readStream;
   }
 }

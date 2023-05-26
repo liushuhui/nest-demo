@@ -1,3 +1,4 @@
+import { FileInterceptor } from '@nestjs/platform-express';
 import { TestService } from './test.service';
 import {
   Body,
@@ -8,7 +9,13 @@ import {
   Post,
   HttpCode,
   Request,
+  Res,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { Response } from 'express';
+import { createReadStream, readFileSync } from 'fs';
+import { join } from 'path';
 
 @Controller('test')
 export class TestController {
@@ -18,8 +25,8 @@ export class TestController {
     const data = await this.testService.addTest(body);
     return {
       code: 200,
-      data
-    }
+      data,
+    };
   }
   @Post('/getAll')
   @HttpCode(200)
@@ -42,8 +49,15 @@ export class TestController {
   // 表格导出
   @Post('/tableExport')
   @HttpCode(200)
-  exportTable(): any {
-    return this.testService.exportTable();
+  @UseInterceptors(FileInterceptor('file'))
+  async exportTable(@Res() res: Response, @UploadedFile() file) {
+    const stream = await this.testService.exportTable();
+    res.setHeader('Content-Disposition', 'attachment; filename=file.xlsx');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.ms-excel;charset=utf-8',
+    );
+    stream.pipe(res);
   }
 
   @Get('/update/:id')
@@ -52,7 +66,6 @@ export class TestController {
     return this.testService.updateById(id);
   }
   @Post('/updatePostById')
-
   updatePostById(@Body() body): any {
     const id: number = body.id;
     return this.testService.updatePostById(id);
