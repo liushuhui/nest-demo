@@ -12,16 +12,22 @@ import {
   Res,
   UseInterceptors,
   UploadedFile,
+  Put,
+  Req,
+  Session,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { createReadStream, readFileSync } from 'fs';
-import { join } from 'path';
 
 @Controller('test')
 export class TestController {
   constructor(private testService: TestService) {}
   @Post('/add')
-  async add(@Body() body): Promise<any> {
+  async add(@Req() req, @Session() session, @Body() body): Promise<any> {
+    if (!session?.code || session?.code?.toLocaleLowerCase() !== body?.code?.toLocaleLowerCase()) {
+      throw new HttpException({ msg: '验证码错误' }, HttpStatus.BAD_REQUEST);
+    }
     const data = await this.testService.addTest(body);
     return {
       code: 200,
@@ -52,12 +58,21 @@ export class TestController {
   @UseInterceptors(FileInterceptor('file'))
   async exportTable(@Res() res: Response, @UploadedFile() file) {
     const stream = await this.testService.exportTable();
-    res.setHeader('Content-Disposition', 'attachment; filename=file.xlsx');
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
     res.setHeader(
-      'Content-Type',
-      'application/vnd.ms-excel;charset=utf-8',
+      `Content-Disposition`,
+      `attachment; filename=${Date.now()}.xlsx`,
     );
+    res.setHeader('Content-Type', 'application/vnd.ms-excel;charset=utf-8');
     stream.pipe(res);
+  }
+  //导入
+  @Post('/tableImport')
+  @HttpCode(200)
+  @UseInterceptors(FileInterceptor('file'))
+  async importTable(@UploadedFile() file) {
+    const result = await this.testService.importTable(file.buffer);
+    return { data: result };
   }
 
   @Get('/update/:id')
@@ -65,14 +80,21 @@ export class TestController {
     const id: number = params.id;
     return this.testService.updateById(id);
   }
-  @Post('/updatePostById')
-  updatePostById(@Body() body): any {
-    const id: number = body.id;
-    return this.testService.updatePostById(id);
+  @Put('/updateById/:id')
+  updatePostById(@Param('id') id: number, @Body() body): any {
+    return this.testService.updatePostById(id, body);
   }
-  @Delete('/deleteById')
-  deleteById(@Body() body): any {
-    const id: number = body.id;
-    return this.testService.deleteById(id);
+  @Delete('/deleteById/:id')
+  async deleteById(@Param('id') id: number): Promise<any> {
+    const result = await this.testService.deleteById(id);
+    return result
+      ? {
+          code: 200,
+          msg: '成功',
+        }
+      : {
+          code: 500,
+          msg: '失败',
+        };
   }
 }

@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Req, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Req, Res, Session, Put, UploadedFiles, UploadedFile, UseInterceptors, HttpCode } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as svgCaptcha from 'svg-captcha';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('user')
 export class UserController {
@@ -14,7 +15,7 @@ export class UserController {
   }
 
   @Get('code')
-  createCaptcha(@Req() req, @Res() res) {
+  createCaptcha(@Req() req, @Res() res, @Session() session) {
     const captcha = svgCaptcha.create({
       size: 4,//生成几个验证码
       fontSize: 50, //文字大小
@@ -22,10 +23,17 @@ export class UserController {
       height: 34,  //高度
       background: '#cc9966',  //背景颜色
     })
-    console.log('captcha', captcha);
-    req.session.code = captcha.text;//存储验证码记录到session
+    session.code = captcha.text;//存储验证码记录到session
     res.type('image/svg+xml');
     res.send(captcha.data);
+  }
+
+  @Post('upload')
+  @HttpCode(200)
+  @UseInterceptors(FileInterceptor('file'))
+  upload(@UploadedFile() file) {
+    console.log('file', file);
+    return this.userService.upload(file.originalname)
   }
 
   @Get(':id')

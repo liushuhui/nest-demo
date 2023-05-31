@@ -13,4 +13,10 @@ export class Test {
 
   @Column()
   skill: string;
+
+  @Column()
+  date: string;
+
+  @Column()
+  imgs: string;
 }

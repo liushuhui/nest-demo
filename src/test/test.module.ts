@@ -14,7 +14,6 @@ import { extname, join } from 'path';
       storage: diskStorage({
         destination: join(__dirname, '../public/files'),
         filename: (_, file, callback) => {
-          console.log('file', file);
           const fileName = `${
             new Date().getTime() + extname(file.originalname)
           }`;

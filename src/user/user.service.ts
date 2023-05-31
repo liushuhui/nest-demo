@@ -1,9 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Test } from '../test/entities/test.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class UserService {
+  constructor(
+    @InjectRepository(Test) private testRepository: Repository<Test>,
+  ) {}
+  upload(fileUrl) {
+    return {
+      code: 200,
+      data: `http://localhost:3000/images/${fileUrl}`
+    }
+  }
+
   create(createUserDto: CreateUserDto) {
     return 'This action adds a new user';
   }
@@ -11,7 +24,7 @@ export class UserService {
   findAll() {
     return `This action returns all user`;
   }
-
+  
   findOne(id: number) {
     return `This action returns a #${id} user`;
   }
