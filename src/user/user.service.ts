@@ -14,12 +14,13 @@ export class UserService {
   ) {}
   async getTest(queryParams) {
     const { pageSize, current, name, age, skill, sorter } = queryParams;
+    const columKey = Object.keys(sorter ?? {})?.[0] ? `user.${Object.keys(sorter ?? {})?.[0]}` : undefined;
     const sql = this.userRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.tags', 'tags')
       // .leftJoinAndSelect('user.image', 'image')
       .orderBy(
-        Object.keys(sorter ?? {})?.[0] ?? 'user.date',
+        columKey ?? 'user.date',
         Object.values?.(sorter ?? {})?.[0]
           ? Object.values?.(sorter ?? {})?.[0] === 'descend'
             ? 'DESC'
