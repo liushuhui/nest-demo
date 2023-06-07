@@ -1,21 +1,24 @@
-import { diskStorage } from 'multer';
 import { Module } from '@nestjs/common';
-import { UserService } from './user.service';
 import { UserController } from './user.controller';
-import { MulterModule } from '@nestjs/platform-express';
-import { join } from 'path';
+import { UserService } from './user.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Test } from '../test/entities/test.entity';
 
+import { MulterModule } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { User } from './entities/user.entity';
+import { Tags } from 'src/tags/entities/tags.entity';
+import { Image } from 'src/image/entities/image.entity';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Test]),
+    TypeOrmModule.forFeature([Tags, User, Image]),
     MulterModule.register({
       storage: diskStorage({
-        destination: join(__dirname, '../public/imgs'),
+        destination: join(__dirname, '../public/files'),
         filename: (_, file, callback) => {
-          console.log('___', _);
-          const fileName = `${file.originalname}`;
+          const fileName = `${
+            new Date().getTime() + extname(file.originalname)
+          }`;
           return callback(null, fileName);
         },
       }),
@@ -23,5 +26,6 @@ import { Test } from '../test/entities/test.entity';
   ],
   controllers: [UserController],
   providers: [UserService],
+  exports: [UserService],
 })
 export class UserModule {}

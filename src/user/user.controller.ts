@@ -1,53 +1,105 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Req, Res, Session, Put, UploadedFiles, UploadedFile, UseInterceptors, HttpCode } from '@nestjs/common';
-import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import * as svgCaptcha from 'svg-captcha';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { UserService } from './user.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  HttpCode,
+  Request,
+  Res,
+  UseInterceptors,
+  UploadedFile,
+  Put,
+  Req,
+  Session,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { Response } from 'express';
+import { UserPipe } from './user.pipe';
+import { CreateUserDto } from './dto/create-user.dto';
+import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
-@Controller('user')
+@Controller('test')
+@ApiTags('test接口')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
-
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto);
+  constructor(private testService: UserService) {}
+  @Post('/add')
+  @ApiParam({name: 'name', description: '姓名', required: true})
+  async add(@Req() req, @Session() session, @Body(UserPipe) body: CreateUserDto): Promise<any> {
+    // if (!session?.code || session?.code?.toLocaleLowerCase() !== body?.code?.toLocaleLowerCase()) {
+    //   throw new HttpException({ msg: '验证码错误' }, HttpStatus.BAD_REQUEST);
+    // }
+    const data = await this.testService.addTest(body);
+    return {
+      code: 200,
+      data,
+    };
+  }
+  @Post('/getAll')
+  @ApiOperation({summary: '获取列表', description:'需要登录'})
+  @HttpCode(200)
+  async getData(@Body() body): Promise<any> {
+    const result = await this.testService.getTest(body);
+    return {
+      list: result[0],
+      count: result[1],
+      pageSize: parseInt(body.pageSize),
+      current: parseInt(body.current),
+    };
+  }
+  @Get('/findALl')
+  getTestById(@Request() req): any {
+    const id = parseInt(req.query.id);
+    return this.testService.getTestById(id);
   }
 
-  @Get('code')
-  createCaptcha(@Req() req, @Res() res, @Session() session) {
-    const captcha = svgCaptcha.create({
-      size: 4,//生成几个验证码
-      fontSize: 50, //文字大小
-      width: 100,  //宽度
-      height: 34,  //高度
-      background: '#cc9966',  //背景颜色
-    })
-    session.code = captcha.text;//存储验证码记录到session
-    res.type('image/svg+xml');
-    res.send(captcha.data);
-  }
-
-  @Post('upload')
+  // 表格导出
+  @Post('/tableExport')
   @HttpCode(200)
   @UseInterceptors(FileInterceptor('file'))
-  upload(@UploadedFile() file) {
-    console.log('file', file);
-    return this.userService.upload(file.originalname)
+  async exportTable(@Res() res: Response, @UploadedFile() file) {
+    const stream = await this.testService.exportTable();
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+    res.setHeader(
+      `Content-Disposition`,
+      `attachment; filename=${Date.now()}.xlsx`,
+    );
+    res.setHeader('Content-Type', 'application/vnd.ms-excel;charset=utf-8');
+    stream.pipe(res);
+  }
+  //导入
+  @Post('/tableImport')
+  @HttpCode(200)
+  @UseInterceptors(FileInterceptor('file'))
+  async importTable(@UploadedFile() file) {
+    const result = await this.testService.importTable(file.buffer);
+    return { data: result };
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id);
+  @Get('/update/:id')
+  updateById(@Param() params): any {
+    const id: number = params.id;
+    return this.testService.updateById(id);
   }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
+  @Put('/updateById/:id')
+  updatePostById(@Param('id') id: number, @Body() body): any {
+    return this.testService.updatePostById(id, body);
   }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(+id);
+  @Delete('/deleteById/:id')
+  async deleteById(@Param('id') id: number): Promise<any> {
+    const result = await this.testService.deleteById(id);
+    return result
+      ? {
+          code: 200,
+          msg: '成功',
+        }
+      : {
+          code: 500,
+          msg: '失败',
+        };
   }
 }
